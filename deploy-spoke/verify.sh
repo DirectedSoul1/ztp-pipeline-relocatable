@@ -56,7 +56,7 @@ for SPOKE in ${ALLSPOKES}; do
     echo ">>>> Starting the validation until finish the installation"
     echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
     check_bmhs "${SPOKE}" "${wait_time}" ${index}
-    check_resource "aci" "${SPOKE}" "Completed" "${SPOKE}" "${SPOKE_KUBECONFIG}"
+    check_resource "aci" "${SPOKE}" "Completed" "${SPOKE}" "${KUBECONFIG_HUB}"
     index=$((index + 1))
     echo ">>>>EOF"
     echo ">>>>>>>"

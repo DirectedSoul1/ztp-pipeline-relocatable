@@ -7,37 +7,6 @@ set -m
 # Load common vars
 source ${WORKDIR}/shared-utils/common.sh
 
-function check_aci() {
-    cluster=${1}
-    wait_time=${2}
-    desired_status=${3}
-    timeout=0
-    ready=false
-
-    while [ "${timeout}" -lt "${wait_time}" ]; do
-        # Check state
-        if [[ $(oc --kubeconfig=${KUBECONFIG_HUB} get aci -n ${cluster} ${cluster} -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}') == "${desired_status}" ]]; then
-            ready=true
-            break
-        fi
-        echo ">> Waiting for ACI"
-        echo "Spoke: ${cluster}"
-        echo "Current: $(oc --kubeconfig=${KUBECONFIG_HUB} get aci -n ${cluster} ${cluster} -o jsonpath='{.status.debugInfo.stateInfo}')"
-        echo "Desired State: Cluster is Installed"
-        echo
-        timeout=$((timeout + 30))
-        sleep 30
-    done
-
-    if [ "${ready}" == "false" ]; then
-        echo "Timeout waiting for AgentClusterInstall ${cluster} on condition .status.conditions.Completed"
-        echo "Expected: ${desired_status} Current: $(oc --kubeconfig=${KUBECONFIG_HUB} get aci -n ${cluster} -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')"
-        exit 1
-    else
-        echo "AgentClusterInstall for ${cluster} verified"
-    fi
-}
-
 function check_bmhs() {
     cluster=${1}
     wait_time=${2}
@@ -87,7 +56,7 @@ for SPOKE in ${ALLSPOKES}; do
     echo ">>>> Starting the validation until finish the installation"
     echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
     check_bmhs "${SPOKE}" "${wait_time}" ${index}
-    check_aci "${SPOKE}" "${wait_time}" "True"
+    check_resource "aci" "${SPOKE}" "Completed" "${SPOKE}" "${SPOKE_KUBECONFIG}"
     index=$((index + 1))
     echo ">>>>EOF"
     echo ">>>>>>>"

@@ -75,47 +75,6 @@ function side_evict_error() {
     fi
 }
 
-function check_mcp() {
-
-    echo Mode: ${1}
-    if [[ ${1} == 'hub' ]]; then
-        TARGET_KUBECONFIG=${KUBECONFIG_HUB}
-        cluster=hub
-    elif [[ ${1} == 'spoke' ]]; then
-        TARGET_KUBECONFIG=${SPOKE_KUBECONFIG}
-        cluster=${2}
-    fi
-    echo ">> Waiting for the MCO to grab the new MachineConfig for the certificate..."
-    sleep 120
-
-    echo ">>>> Waiting for MCP Updated field on: ${1}"
-    echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-    timeout=0
-    ready=false
-    echo KUBECONFIG=${TARGET_KUBECONFIG}
-    while [ "$timeout" -lt "1000" ]; do
-        echo "Nodes:"
-        oc --kubeconfig=${TARGET_KUBECONFIG} get nodes
-        echo
-        echo "MCP:"
-        oc --kubeconfig=${TARGET_KUBECONFIG} get mcp
-        echo
-        if [[ $(oc --kubeconfig=${TARGET_KUBECONFIG} get mcp master -o jsonpath='{.status.conditions[?(@.type=="Updated")].status}') == 'True' ]]; then
-            ready=true
-            break
-        fi
-        echo "Waiting for MCP Updated field on: ${1}"
-        sleep 20
-        side_evict_error ${TARGET_KUBECONFIG}
-        timeout=$((timeout + 1))
-    done
-
-    if [ "$ready" == "false" ]; then
-        echo "Timeout waiting for MCP Updated field on: ${1}"
-        exit 1
-    fi
-}
-
 function check_ocs_ready() {
     echo ">>>> Waiting for OCS Cluster Ready"
     echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
@@ -240,7 +199,7 @@ if [[ ${1} == 'hub' ]]; then
         trust_internal_registry 'hub'
         check_resource "deployment" "${REGISTRY}" "Available" "${REGISTRY}" "${KUBECONFIG_HUB}"
         render_file manifests/machine-config-certs.yaml 'hub'
-        check_mcp 'hub'
+        check_resource "mcp" "master" "Updated" "default" "${KUBECONFIG_HUB}"
         check_resource "deployment" "${REGISTRY}" "Available" "${REGISTRY}" "${KUBECONFIG_HUB}"
     else
         echo ">>>> This step to deploy registry on Hub is not neccesary, everything looks ready"
